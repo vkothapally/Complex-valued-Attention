@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from complexfunctions import *
+from ComplexFunctions import *
 
 
 def param(nnet, Mb=True): return np.round(sum([param.nelement() for param in nnet.parameters()]) / 10**6 if Mb else neles,2)
