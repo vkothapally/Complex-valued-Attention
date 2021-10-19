@@ -51,7 +51,7 @@ class ComplexSoftMax(nn.Module):
 
 class ComplexLayerNorm(nn.Module):
     ''' [nn.LayerNorm] LayerNorm for Complex Numbers '''
-    def __init__(self, normal_shape, gamma=True, beta=True, epsilon=1e-10):
+    def __init__(self, normal_shape, affine=True, epsilon=1e-10):
         super(ComplexLayerNorm, self).__init__()
         if isinstance(normal_shape, int):
             normal_shape = (normal_shape,)
@@ -59,20 +59,18 @@ class ComplexLayerNorm(nn.Module):
             normal_shape = (normal_shape[-1],)
         self.normal_shape = torch.Size(normal_shape)
         self.epsilon = epsilon
-        if gamma:
+        self.affine  = affine 
+        if self.affine:
             self.gamma = nn.Parameter(torch.Tensor(*normal_shape))
+            self.beta  = nn.Parameter(torch.Tensor(*normal_shape))
         else:
             self.register_parameter('gamma', None)
-        if beta:
-            self.beta = nn.Parameter(torch.Tensor(*normal_shape))
-        else:
             self.register_parameter('beta', None)
         self.reset_parameters()
 
     def reset_parameters(self):
-        if self.gamma is not None:
+        if self.affine:
             self.gamma.data.fill_(1)
-        if self.beta is not None:
             self.beta.data.zero_()
 
     def forward(self, x):
@@ -81,10 +79,8 @@ class ComplexLayerNorm(nn.Module):
         x_mean = (x - mean)
         std  = ((x_mean * x_mean.conj()).abs() + self.epsilon).sqrt()
         y    = torch.view_as_complex(torch.stack((x_mean.real/std, x_mean.imag/std),-1))
-        if self.gamma is not None:
-            y *= self.gamma
-        if self.beta is not None:
-            y += self.beta
+        if self.affine:
+            y = (self.gamma * y) + self.beta
         return y
 
 
